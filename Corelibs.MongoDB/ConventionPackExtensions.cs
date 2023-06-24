@@ -20,7 +20,7 @@ namespace Corelibs.MongoDB
             public void PostProcess(BsonClassMap classMap)
             {
                 var idMap = classMap.IdMemberMap;
-                if (idMap != null && idMap.MemberName == "ID" && idMap.MemberType == typeof(string))
+                if (idMap != null && idMap.MemberName == "Id" && idMap.MemberType == typeof(string))
                 {
                     idMap.SetIdGenerator(new StringObjectIdGenerator());
                 }

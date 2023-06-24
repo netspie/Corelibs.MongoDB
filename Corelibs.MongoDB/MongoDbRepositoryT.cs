@@ -1,6 +1,6 @@
-﻿using Common.Basic.Blocks;
-using Common.Basic.DDD;
-using Common.Basic.Repository;
+﻿using Corelibs.Basic.Blocks;
+using Corelibs.Basic.DDD;
+using Corelibs.Basic.Repository;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -10,8 +10,8 @@ using System.Threading.Tasks;
 
 namespace Corelibs.MongoDB
 {
-    public class MongoDbRepositoryT<TRoot> : MongoDbRepository, IRepository<TRoot>
-        where TRoot : Entity
+    public class MongoDbRepositoryT<TEntity, TEntityId> : MongoDbRepository, IRepository<TEntity, TEntityId>
+        where TEntity : IEntity<TEntityId>
     {
         public MongoDbRepositoryT(
             string connectionString, string databaseName, string collectionName, string eventStoreCollectionName = default) 
@@ -23,64 +23,64 @@ namespace Corelibs.MongoDB
             return mongoClient.GetDatabase(DatabaseName);
         }
 
-        private IMongoCollection<TRoot> GetOrCreateCollection()
+        private IMongoCollection<TEntity> GetOrCreateCollection()
         {
             var database = GetOrCreateDatabase();
-            return database.GetCollection<TRoot>(CollectionName);
+            return database.GetCollection<TEntity>(CollectionName);
         }
 
-        async Task<Result<TRoot>> IRepository<TRoot>.GetBy(string id)
+        async Task<Result<TEntity>> IRepository<TEntity, TEntityId>.GetBy(TEntityId id)
         {
             var collection = GetOrCreateCollection();
 
-            var filter = Builders<TRoot>.Filter.Eq("_id", id);
+            var filter = Builders<TEntity>.Filter.Eq("_id", id);
             var findResult = await collection.FindAsync(filter);
             var item = findResult.FirstOrDefault();
 
-            return Result<TRoot>.Success(item);
+            return Result<TEntity>.Success(item);
         }
 
-        public Task<Result<TRoot[]>> GetBy(IList<string> ids)
+        public Task<Result<TEntity[]>> GetBy(IList<TEntityId> ids)
         {
             throw new NotImplementedException();
         }
 
-        public Task<Result<TRoot>> GetOfName(string name, Func<TRoot, string> getName)
+        public Task<Result<TEntity>> GetOfName(string name, Func<TEntity, string> getName)
         {
             throw new NotImplementedException();
         }
 
-        async Task<Result<TRoot[]>> IRepository<TRoot>.GetAll()
+        async Task<Result<TEntity[]>> IRepository<TEntity, TEntityId>.GetAll()
         {
             var collection = GetOrCreateCollection();
-            var findResult = await collection.FindAsync(Builders<TRoot>.Filter.Empty);
+            var findResult = await collection.FindAsync(Builders<TEntity>.Filter.Empty);
             var findResultList = await findResult.ToListAsync();
             
-            return Result<TRoot[]>.Success(findResultList.ToArray());
+            return Result<TEntity[]>.Success(findResultList.ToArray());
         }
 
-        public Task<Result<TRoot[]>> GetAll(Action<int> setProgress, CancellationToken ct)
+        public Task<Result<TEntity[]>> GetAll(Action<int> setProgress, CancellationToken ct)
         {
             throw new NotImplementedException();
         }
 
-        async public Task<Result> Save(TRoot item)
+        async public Task<Result> Save(TEntity item)
         {
             var collection = GetOrCreateCollection();
 
-            var filter = Builders<TRoot>.Filter.Eq("_id", item.ID);
+            var filter = Builders<TEntity>.Filter.Eq("_id", item.Id);
             var findResult = await collection.FindAsync(filter);
             var itemFound = findResult.FirstOrDefault();
             if (itemFound == null)
                 await collection.InsertOneAsync(item);
             else
             {
-                var id = item.ID;
+                var id = item.Id;
                 var oldVersion = item.Version;
 
                 item.Version++;
 
-                var res = await collection.ReplaceOneAsync(c => c.ID == id && c.Version == oldVersion, item,
+                var res = await collection.ReplaceOneAsync(c => c.Id.ToString() == id.ToString() && c.Version == oldVersion, item,
                     new ReplaceOptions { IsUpsert = false });
 
                 var isSuccess = res.ModifiedCount > 0;
@@ -96,10 +96,10 @@ namespace Corelibs.MongoDB
             throw new NotImplementedException();
         }
 
-        public async Task<Result> Delete(string id)
+        public async Task<Result> Delete(TEntityId id)
         {
             var collection = GetOrCreateCollection();
-            var filter = Builders<TRoot>.Filter.Eq("_id", id);
+            var filter = Builders<TEntity>.Filter.Eq("_id", id);
             var res = await collection.DeleteOneAsync(filter);
 
             var isSuccess = res.DeletedCount > 0;
@@ -109,7 +109,7 @@ namespace Corelibs.MongoDB
             return Result.Success();
         }
 
-        public Task<Result<bool>> ExistsOfName(string name, Func<TRoot, string> getName)
+        public Task<Result<bool>> ExistsOfName(string name, Func<TEntity, string> getName)
         {
             throw new NotImplementedException();
         }
