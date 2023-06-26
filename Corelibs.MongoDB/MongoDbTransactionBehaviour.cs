@@ -29,7 +29,7 @@ public class MongoDbTransactionBehaviour<TRequest, TResponse> : IPipelineBehavio
             try
             {
                 _mongoConnection.Session = session;
-                _mongoConnection.Database = _client.GetDatabase("MyApp_dev");
+                _mongoConnection.Database = _client.GetDatabase(_mongoConnection.DatabaseName);
 
                 session.StartTransaction();
 
