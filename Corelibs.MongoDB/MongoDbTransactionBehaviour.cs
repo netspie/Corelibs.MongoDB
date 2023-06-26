@@ -1,4 +1,5 @@
 ﻿using Corelibs.Basic.Blocks;
+using Corelibs.Basic.Repository;
 using Mediator;
 using MongoDB.Driver;
 using System;
@@ -10,39 +11,45 @@ namespace Corelibs.MongoDB;
 public class MongoDbTransactionBehaviour<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
         where TRequest : ICommand<TResponse>
 {
-    private readonly IClientSessionHandle _session;
+    private readonly MongoConnection _mongoConnection;
+    private readonly MongoClient _client;
 
-    public MongoDbTransactionBehaviour(IClientSessionHandle session)
+    public MongoDbTransactionBehaviour(
+        MongoClient client,
+        MongoConnection mongoConnection)
     {
-        _session = session;
+        _client = client;
+        _mongoConnection = mongoConnection;
     }
 
     public async ValueTask<TResponse> Handle(TRequest command, CancellationToken ct, MessageHandlerDelegate<TRequest, TResponse> next)
     {
-        try
+        using (var session = await _client.StartSessionAsync())
         {
-            _session.StartTransaction();
+            try
+            {
+                _mongoConnection.Session = session;
+                _mongoConnection.Database = _client.GetDatabase("MyApp_dev");
 
-            var response = await next(command, ct);
-            if (response is Result result && !result.IsSuccess)
+                session.StartTransaction();
+
+                var response = await next(command, ct);
+                if (response is Result result && !result.IsSuccess)
+                    return response;
+
+                bool isCommand = typeof(TRequest).GetInterface(typeof(IBaseCommand).Name) != null;
+                if (isCommand)
+                    await session.CommitTransactionAsync();
+
                 return response;
-
-            bool isCommand = typeof(TRequest).GetInterface(typeof(IBaseCommand).Name) != null;
-            if (isCommand)
-                await _session.CommitTransactionAsync();
-
-            return response;
-        }
-        catch (Exception ex)
-        {
-            await _session.AbortTransactionAsync();
-            Console.WriteLine(ex.ToString());
-            throw ex;
-            return default;
-        }
-        finally
-        {
-            _session.Dispose();
+            }
+            catch (Exception ex)
+            {
+                await session.AbortTransactionAsync();
+                Console.WriteLine(ex.ToString());
+                throw ex;
+                return default;
+            }
         }
     }
 }

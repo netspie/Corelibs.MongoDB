@@ -13,32 +13,20 @@ namespace Corelibs.MongoDB
     public class MongoDbRepository<TEntity, TEntityId> : IRepository<TEntity, TEntityId>
         where TEntity : IEntity<TEntityId>
     {
-        private readonly MongoClient _client;
-        private readonly IClientSessionHandle _session;
-        private readonly string _databaseName;
         private readonly string _collectionName;
+        private readonly MongoConnection _mongoConnection;
 
         public MongoDbRepository(
-            MongoClient client,
-            IClientSessionHandle session, 
-            string databaseName, 
+            MongoConnection mongoConnection,
             string collectionName)
         {
-            _client = client;
-            _session = session;
-            _databaseName = databaseName;
+            _mongoConnection = mongoConnection;
             _collectionName = collectionName;
         }
-
-        private IMongoDatabase GetOrCreateDatabase()
+        
+        private  IMongoCollection<TEntity> GetOrCreateCollection()
         {
-            return _client.GetDatabase(_databaseName);
-        }
-
-        private IMongoCollection<TEntity> GetOrCreateCollection()
-        {
-            var database = GetOrCreateDatabase();
-            return database.GetCollection<TEntity>(_collectionName);
+            return _mongoConnection.Database.GetCollection<TEntity>(_collectionName);
         }
 
         async Task<Result<TEntity>> IRepository<TEntity, TEntityId>.GetBy(TEntityId id)
@@ -46,7 +34,8 @@ namespace Corelibs.MongoDB
             var collection = GetOrCreateCollection();
 
             var filter = Builders<TEntity>.Filter.Eq("_id", id);
-            var findResult = await collection.FindAsync(_session, filter);
+
+            var findResult = await collection.FindAsync(_mongoConnection.Session, filter);
             var item = findResult.FirstOrDefault();
 
             return Result<TEntity>.Success(item);
@@ -65,7 +54,7 @@ namespace Corelibs.MongoDB
         async Task<Result<TEntity[]>> IRepository<TEntity, TEntityId>.GetAll()
         {
             var collection = GetOrCreateCollection();
-            var findResult = await collection.FindAsync(_session, Builders<TEntity>.Filter.Empty);
+            var findResult = await collection.FindAsync(_mongoConnection.Session, Builders<TEntity>.Filter.Empty);
             var findResultList = await findResult.ToListAsync();
             
             return Result<TEntity[]>.Success(findResultList.ToArray());
@@ -81,7 +70,7 @@ namespace Corelibs.MongoDB
             var collection = GetOrCreateCollection();
 
             var filter = Builders<TEntity>.Filter.Eq("_id", item.Id);
-            var findResult = await collection.FindAsync(_session, filter);
+            var findResult = await collection.FindAsync(_mongoConnection.Session, filter);
             var itemFound = findResult.FirstOrDefault();
             if (itemFound == null)
                 await collection.InsertOneAsync(item);
@@ -112,7 +101,7 @@ namespace Corelibs.MongoDB
         {
             var collection = GetOrCreateCollection();
             var filter = Builders<TEntity>.Filter.Eq("_id", id);
-            var res = await collection.DeleteOneAsync(_session, filter);
+            var res = await collection.DeleteOneAsync(_mongoConnection.Session, filter);
 
             var isSuccess = res.DeletedCount > 0;
             if (!isSuccess)
