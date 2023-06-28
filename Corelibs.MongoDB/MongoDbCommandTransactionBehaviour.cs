@@ -8,13 +8,13 @@ using System.Threading.Tasks;
 
 namespace Corelibs.MongoDB;
 
-public class MongoDbTransactionBehaviour<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
-        where TRequest : ICommand<TResponse>
+public class MongoDbCommandTransactionBehaviour<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+        where TRequest : IBaseCommand
 {
     private readonly MongoConnection _mongoConnection;
     private readonly MongoClient _client;
 
-    public MongoDbTransactionBehaviour(
+    public MongoDbCommandTransactionBehaviour(
         MongoClient client,
         MongoConnection mongoConnection)
     {
