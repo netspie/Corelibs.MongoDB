@@ -12,6 +12,7 @@ namespace Corelibs.MongoDB
 {
     public class MongoDbRepository<TEntity, TEntityId> : IRepository<TEntity, TEntityId>
         where TEntity : IEntity<TEntityId>
+        where TEntityId : EntityId
     {
         private readonly string _collectionName;
         private readonly MongoConnection _mongoConnection;
@@ -35,7 +36,7 @@ namespace Corelibs.MongoDB
 
             var filter = Builders<TEntity>.Filter.Eq("_id", id);
 
-            var findResult = await collection.FindAsync(_mongoConnection.Session, filter);
+            var findResult = await collection.FindAsync(filter);
             var item = findResult.FirstOrDefault();
 
             return Result<TEntity>.Success(item);
@@ -70,6 +71,7 @@ namespace Corelibs.MongoDB
             var collection = GetOrCreateCollection();
 
             var filter = Builders<TEntity>.Filter.Eq("_id", item.Id);
+
             var findResult = await collection.FindAsync(_mongoConnection.Session, filter);
             var itemFound = findResult.FirstOrDefault();
             if (itemFound == null)
@@ -81,7 +83,7 @@ namespace Corelibs.MongoDB
 
                 item.Version++;
 
-                var res = await collection.ReplaceOneAsync(c => c.Id.ToString() == id.ToString() && c.Version == oldVersion, item,
+                var res = await collection.ReplaceOneAsync(c => c.Id.Value == id.Value && c.Version == oldVersion, item,
                     new ReplaceOptions { IsUpsert = false });
 
                 var isSuccess = res.ModifiedCount > 0;
