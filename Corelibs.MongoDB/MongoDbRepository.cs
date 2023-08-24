@@ -55,7 +55,7 @@ namespace Corelibs.MongoDB
         async Task<Result<TEntity[]>> IRepository<TEntity, TEntityId>.GetAll()
         {
             var collection = GetOrCreateCollection();
-            var findResult = await collection.FindAsync(_mongoConnection.Session, Builders<TEntity>.Filter.Empty);
+            var findResult = await collection.FindAsync(Builders<TEntity>.Filter.Empty);
             var findResultList = await findResult.ToListAsync();
             
             return Result<TEntity[]>.Success(findResultList.ToArray());
