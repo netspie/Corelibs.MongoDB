@@ -1,4 +1,5 @@
 ﻿using Corelibs.Basic.Blocks;
+using Corelibs.Basic.Collections;
 using Corelibs.Basic.DDD;
 using Corelibs.Basic.Repository;
 using MongoDB.Driver;
@@ -42,9 +43,16 @@ namespace Corelibs.MongoDB
             return Result<TEntity>.Success(item);
         }
 
-        public Task<Result<TEntity[]>> GetBy(IList<TEntityId> ids)
+        public async Task<Result<TEntity[]>> GetBy(IList<TEntityId> ids)
         {
-            throw new NotImplementedException();
+            var collection = GetOrCreateCollection();
+
+            var filter = Builders<TEntity>.Filter.In("_id", ids);
+
+            var findResult = await collection.FindAsync(filter);
+            var items = await findResult.ToListAsync();
+
+            return Result<TEntity[]>.Success(items.ToArray());
         }
 
         public Task<Result<TEntity>> GetOfName(string name, Func<TEntity, string> getName)
