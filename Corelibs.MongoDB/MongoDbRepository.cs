@@ -51,8 +51,9 @@ namespace Corelibs.MongoDB
 
             var findResult = await collection.FindAsync(filter);
             var items = await findResult.ToListAsync();
+            var itemsOrdered = items.OrderBy(i => ids.IndexOf(i.Id)).ToArray();
 
-            return Result<TEntity[]>.Success(items.ToArray());
+            return Result<TEntity[]>.Success(itemsOrdered.ToArray());
         }
 
         public Task<Result<TEntity>> GetOfName(string name, Func<TEntity, string> getName)
