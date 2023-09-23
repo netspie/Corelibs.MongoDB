@@ -103,6 +103,26 @@ namespace Corelibs.MongoDB
             return Result.Success();
         }
 
+        public async Task<Result> Create(IEnumerable<TEntity> items)
+        {
+            if (items == null)
+                return Result.Failure();
+
+            var collection = GetOrCreateCollection();
+
+            try
+            {
+                await collection.InsertManyAsync(items);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving items: {ex.Message}");
+                return Result.Failure();
+            }
+
+            return Result.Success();
+        }
+
         public Task<Result> Clear()
         {
             throw new NotImplementedException();
