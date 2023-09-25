@@ -1,4 +1,5 @@
 ﻿using Corelibs.Basic.Blocks;
+using Corelibs.Basic.Collections;
 using Corelibs.Basic.DDD;
 using Corelibs.Basic.UseCases.Events;
 using MongoDB.Bson;
@@ -44,6 +45,9 @@ public class MongoDbEventStore : IEventStore
 
     async Task<Result> IEventStore.Save(IEnumerable<BaseDomainEvent> events)
     {
+        if (events.IsEmpty())
+            return Result.Success();
+
         var collection = _connection.Database.GetCollection<BaseDomainEvent>(_collectionName);
 
         try
