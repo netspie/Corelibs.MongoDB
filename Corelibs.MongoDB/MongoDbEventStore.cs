@@ -1,6 +1,6 @@
 ﻿using Corelibs.Basic.Blocks;
 using Corelibs.Basic.DDD;
-using Corelibs.Basic.UseCases;
+using Corelibs.Basic.UseCases.Events;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
