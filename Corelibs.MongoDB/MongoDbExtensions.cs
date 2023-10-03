@@ -40,7 +40,7 @@ namespace Corelibs.MongoDB
             var aggregateRootTypes = AssemblyExtensionsEx.GetCurrentDomainTypesImplementing<IAggregateRoot>(entitiesAssembly);
             foreach (var type in aggregateRootTypes)
             {
-                var collectionName = (string)type.GetField(nameof(IAggregateRoot.DefaultCollectionName), BindingFlags.Static | BindingFlags.Public).GetValue(type);
+                var collectionName = (string)type.GetProperty(nameof(IAggregateRoot<EntityId>.DefaultCollectionName), BindingFlags.Static | BindingFlags.Public).GetValue(type);
                 services.AddMongoRepository(serviceProvider, type, connectionString, databaseName, collectionName);
             }
         }
