@@ -25,6 +25,7 @@ public class MongoDbCommandTransactionBehaviour<TRequest, TResponse> : IPipeline
     {
         using (var session = await _client.StartSessionAsync())
         {
+            TResponse response = default;
             try
             {
                 _mongoConnection.Session = session;
@@ -32,7 +33,7 @@ public class MongoDbCommandTransactionBehaviour<TRequest, TResponse> : IPipeline
 
                 session.StartTransaction();
 
-                var response = await next(command, ct);
+                response = await next(command, ct);
                 if (response is Result result && !result.IsSuccess)
                     return response;
 
@@ -46,8 +47,7 @@ public class MongoDbCommandTransactionBehaviour<TRequest, TResponse> : IPipeline
             {
                 await session.AbortTransactionAsync();
                 Console.WriteLine(ex.ToString());
-                throw ex;
-                return default;
+                return response;
             }
         }
     }
