@@ -7,6 +7,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Corelibs.MongoDB;
 
@@ -86,5 +87,16 @@ public static class MongoDbExtensions
         {
             return false;
         }
+    }
+
+    public static async Task CreateIndex<T>(
+        this IMongoDatabase database,
+        string collectionName,
+        Func<IndexKeysDefinitionBuilder<T>, IndexKeysDefinition<T>> buildIndex)
+    {
+        var indexKeys = buildIndex(Builders<T>.IndexKeys);
+        var indexModel = new CreateIndexModel<T>(indexKeys);
+        var eventsCollection = database.GetCollection<T>(collectionName);
+        await eventsCollection.Indexes.CreateOneAsync(indexModel);
     }
 }
