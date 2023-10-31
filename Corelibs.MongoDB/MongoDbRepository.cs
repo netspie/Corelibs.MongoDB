@@ -78,26 +78,32 @@ namespace Corelibs.MongoDB
         async public Task<Result> Save(TEntity item)
         {
             var collection = GetOrCreateCollection();
-
             var filter = Builders<TEntity>.Filter.Eq("_id", item.Id);
 
-            var findResult = await collection.FindAsync(_mongoConnection.Session, filter);
-            var itemFound = findResult.FirstOrDefault();
-            if (itemFound == null)
-                await collection.InsertOneAsync(item);
-            else
+            try
             {
-                var id = item.Id;
-                var oldVersion = item.Version;
+                var findResult = await collection.FindAsync(_mongoConnection.Session, filter).ConfigureAwait(false);
+                var itemFound = await findResult.FirstOrDefaultAsync().ConfigureAwait(false);
+                if (itemFound == null)
+                    await collection.InsertOneAsync(item).ConfigureAwait(false);
+                else
+                {
+                    var id = item.Id;
+                    var oldVersion = item.Version;
 
-                item.Version++;
+                    item.Version++;
 
-                var res = await collection.ReplaceOneAsync(c => c.Id.Value == id.Value && c.Version == oldVersion, item,
-                    new ReplaceOptions { IsUpsert = false });
+                    var res = await collection.ReplaceOneAsync(c => c.Id.Value == id.Value && c.Version == oldVersion, item,
+                        new ReplaceOptions { IsUpsert = false }).ConfigureAwait(false);
 
-                var isSuccess = res.ModifiedCount > 0;
-                if (!isSuccess)
-                    return Result.Failure();
+                    var isSuccess = res.ModifiedCount > 0;
+                    if (!isSuccess)
+                        return Result.Failure();
+                }
+            }
+            catch (Exception ex) 
+            {
+                Console.WriteLine(ex.ToString());
             }
 
             return Result.Success();
