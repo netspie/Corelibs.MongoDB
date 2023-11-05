@@ -70,6 +70,15 @@ namespace Corelibs.MongoDB
             return Result<TEntity[]>.Success(findResultList.ToArray());
         }
 
+        async Task<TEntity[]> IRepository<TEntity, TEntityId>.GetAllAsync()
+        {
+            var collection = GetOrCreateCollection();
+            var findResult = await collection.FindAsync(Builders<TEntity>.Filter.Empty);
+            var findResultList = await findResult.ToListAsync();
+
+            return findResultList.ToArray();
+        }
+
         public Task<Result<TEntity[]>> GetAll(Action<int> setProgress, CancellationToken ct)
         {
             throw new NotImplementedException();
